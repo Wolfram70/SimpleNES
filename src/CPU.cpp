@@ -525,9 +525,10 @@ uint8_t CPU::INC()
 {
 	fetch();
 	uint16_t temp = fetched + 1;
-	write(addr_abs, temp & 0x00FF)
+	write(addr_abs, temp & 0x00FF);
 	setFlag(Z, (temp & 0x00FF) == 0x0000); //set zero flag is the result is 0
 	setFlag(N, temp & 0x0080);  //set negative flag is the high bit of the result is set
+	return 0;
 }
 
 //INX
@@ -596,7 +597,7 @@ uint8_t CPU::LSR()
 {
 	fetch();
 	uint8_t temp = fetched >> 1;
-	setFlag(N, false) //clear the negative flag
+	setFlag(N, false); //clear the negative flag
 	setFlag(Z, temp == 0x00); //set the zero flag if the result is 0
 	setFlag(C, fetched & 0x01); //set the carry flag with the least significant bit of the fetched value
 	return 0;
@@ -826,8 +827,15 @@ uint8_t CPU::TYA()
 	return 0;
 }
 
+//XXX
+uint8_t CPU::XXX()
+{
+	return 0;
+}
+
 //ASYNCHRONOUS
 
+//Reset the CPU
 void CPU::reset()
 {
 	a = 0x00; //clear the accumulator
@@ -845,6 +853,7 @@ void CPU::reset()
 	cycles = 8; //set the number of cycles to 8
 }
 
+//Interrupt request
 void CPU::irq()
 {
 	if(getFlag(I) == 0) //if the interrupt flag is not set
@@ -866,6 +875,7 @@ void CPU::irq()
 	}
 }
 
+//Non-maskable interrupt
 void CPU::nmi()
 {
 	write(0x0100 + sp, (pc >> 8) & 0x00FF); //write the high byte of the program counter to the stack

@@ -1,1 +1,3 @@
-./test_exp
+test_exp/
+.vscode/
+src/main.cpp
