@@ -42,7 +42,7 @@ private: //flags
 
 private: //registers
     uint16_t pc = 0x0000; //program counter
-    uint8_t sp = 0x00;    //stack pointer
+    uint8_t sp = 0x00;    //stack pointer (calculated from 0x0100)
     uint8_t a = 0x00;     //accumulator
     uint8_t x = 0x00;     //x register
     uint8_t y = 0x00;     //y register
