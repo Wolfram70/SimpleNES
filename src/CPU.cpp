@@ -31,12 +31,12 @@ CPU::~CPU()
 //READ AND WRITE
 uint8_t CPU::read(uint16_t addr)
 {
-    return bus->read(addr, false);
+    return bus->read_cpu(addr, false);
 }
 
 void CPU::write(uint16_t addr, uint8_t data)
 {
-    bus->write(addr, data);
+    bus->write_cpu(addr, data);
 }
 
 //FLAG OPERATIONS
