@@ -2,3 +2,4 @@ test_exp/
 .vscode/
 src/main.cpp
 output
+*.nes

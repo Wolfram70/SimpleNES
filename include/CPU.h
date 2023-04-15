@@ -151,6 +151,9 @@ public: //asynchronous
 
 public: //fetching data
     uint8_t fetch();
+
+public: //helper functions
+    bool complete() { return cycles == 0; }
 };
 
 #endif

@@ -573,6 +573,8 @@ uint8_t CPU::LDA()
 {
 	fetch();
 	a = fetched; //load the accumulator with the value fetched
+	setFlag(Z, a == 0x00); //set the zero flag if the result is 0
+	setFlag(N, a & 0x80); //set the negative flag if the high bit of the result is set
 	return 1;
 }
 
@@ -581,6 +583,8 @@ uint8_t CPU::LDX()
 {
 	fetch();
 	x = fetched; //load the x register with the value fetched
+	setFlag(Z, x == 0x00); //set the zero flag if the result is 0
+	setFlag(N, x & 0x80); //set the negative flag if the high bit of the result is set
 	return 1;
 }
 
@@ -589,6 +593,8 @@ uint8_t CPU::LDY()
 {
 	fetch();
 	y = fetched; //load the y register with the value fetched
+	setFlag(Z, y == 0x00); //set the zero flag if the result is 0
+	setFlag(N, y & 0x80); //set the negative flag if the high bit of the result is set
 	return 1;
 }
 

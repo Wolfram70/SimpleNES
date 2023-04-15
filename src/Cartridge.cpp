@@ -13,7 +13,7 @@ struct iNESHeader
     uint8_t prg_ram_size; //number of 8KB prg ram chunks
     uint8_t flags_9; //TV system, unused
     uint8_t flags_10; //TV system, unused
-    uint8_t padding[5]; //unused padding
+    char padding[5]; //unused padding
 };
 
 Cartridge::Cartridge(const std::string &filepath)
@@ -22,17 +22,25 @@ Cartridge::Cartridge(const std::string &filepath)
     //open the file in binary mode
     std::ifstream ifs;
     ifs.open(filepath, std::ios::binary);
+
+    std::cout << "Loading ROM: " << filepath << std::endl;
+
     if(ifs.is_open())
     {
+        std::cout << "File opened successfully!" << std::endl;
+
+        std::cout << "Reading header..." << std::endl;
         ifs.read((char*)&header, sizeof(iNESHeader)); //read the header
 
         //next 512 bytes are the trainer (can be ignored)
+        std::cout << "Reading trainer..." << std::endl;
         if(header.flags_6 & 0x04)
         {
-            ifs.seekg(512, std::ios::cur);
+            ifs.seekg(512, std::ios_base::cur);
         }
 
         //detect the mapper
+        std::cout << "Detecting mapper..." << std::endl;
         mapper_id = (header.flags_7 & 0xF0) | ((header.flags_6 & 0xF0) >> 4); //4 bits from flags_7 and 4 bits from flags_6
 
         uint8_t fileformat = 1; //for now
@@ -43,11 +51,13 @@ Cartridge::Cartridge(const std::string &filepath)
         else if(fileformat == 1)
         {
             //read the PRG ROM
+            std::cout << "Reading PRG ROM..." << std::endl;
             prg_banks = header.prg_rom_chunks;
             prg_rom.resize(prg_banks * 16384);
             ifs.read((char*)prg_rom.data(), prg_rom.size());
 
             //read the CHR ROM
+            std::cout << "Reading CHR ROM..." << std::endl;
             chr_banks = header.chr_rom_chunks;
             chr_rom.resize(chr_banks * 8192);
             ifs.read((char*)chr_rom.data(), chr_rom.size());
@@ -62,6 +72,8 @@ Cartridge::Cartridge(const std::string &filepath)
         {
             case 0:
                 mapper = std::make_shared<Mapper_000>(prg_banks, chr_banks);
+                std::cout << "Got mapper 0!" << std::endl;
+                std::cout << prg_banks << "   " << chr_banks << std::endl;
                 break;
             default:
                 std::cout << "Mapper not implemented!" << std::endl;
@@ -69,6 +81,10 @@ Cartridge::Cartridge(const std::string &filepath)
         }
 
         ifs.close();
+    }
+    else
+    {
+        std::cout << "File could not be opened!" << std::endl;
     }
 }
 

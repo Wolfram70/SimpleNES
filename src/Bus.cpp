@@ -1,4 +1,5 @@
 #include "../include/Bus.h"
+#include <iostream>
 
 Bus::Bus()
 {
@@ -65,8 +66,17 @@ void Bus::reset()
 
 void Bus::clock()
 {
-    cpu.clock();
     ppu.clock();
+    if(nSystemClockCounter % 3 == 0)
+    {
+        cpu.clock();
+    }
+
+    if(ppu.nmi)
+    {
+        ppu.nmi = false;
+        cpu.nmi();
+    }
 
     nSystemClockCounter++;
 }

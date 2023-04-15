@@ -14,6 +14,15 @@ public:
     Cartridge(const std::string &filepath);
     ~Cartridge();
 
+public:
+    enum MIRROR
+    [
+        HORIZONTAL,
+        VERTICAL,
+        ONESCREEN_LO,
+        ONESCREEN_HI
+    ] mirror = horizontal;
+
 private:
     //memory
     std::vector<uint8_t> prg_rom; //program ROM

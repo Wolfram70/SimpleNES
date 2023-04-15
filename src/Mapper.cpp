@@ -34,5 +34,11 @@ bool Mapper_000::read_map_ppu(uint16_t addr, uint32_t &mapped_addr)
 
 bool Mapper_000::write_map_ppu(uint16_t addr, uint32_t &mapped_addr)
 {
-    return true;
+    if(addr >= 0x0000 && addr <= 0x1FFF)
+    {
+        mapped_addr = addr;
+        return true;
+    }
+    
+    return false;
 }

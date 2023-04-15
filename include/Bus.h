@@ -14,7 +14,7 @@ public:
     Bus();
     ~Bus();
 
-private: //devices on the bus
+public: //devices on the bus
     CPU cpu; //the 6502 processor
     PPU ppu; //the 2C02 PPU
     
