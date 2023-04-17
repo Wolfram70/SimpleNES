@@ -117,7 +117,7 @@ uint8_t PPU::read_cpu(uint16_t addr, bool bReadOnly)
             break;
         case 0x0007: //PPU data register
             data = ppu_data_buffer;
-            ppu_data_buffer = read_ppu(vram_addr.reg); //ADDED THIS TO PASS VRAM_ACCESS.NES TEST
+            ppu_data_buffer = read_ppu(vram_addr.reg & 0xEFFF); //ADDED THIS TO PASS VRAM_ACCESS.NES TEST
             if(vram_addr.reg > 0x3F00) data = ppu_data_buffer;
             vram_addr.reg = vram_addr.reg + (control.increment_mode ? 32 : 1);
             break;
