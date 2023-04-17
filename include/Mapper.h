@@ -12,7 +12,7 @@ public:
 public:
     //virtual functions
     virtual bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr) = 0;
-    virtual bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr) = 0;
+    virtual bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) = 0;
     virtual bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) = 0;
     virtual bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) = 0;
 
@@ -28,10 +28,10 @@ public:
     ~Mapper_000() {};
 
 public:
-    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr); 
-    bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr);
-    bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr);
-    bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr);
+    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr) override; 
+    bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) override;
+    bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+    bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
 };
 
 #endif

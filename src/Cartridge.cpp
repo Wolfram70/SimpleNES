@@ -42,6 +42,20 @@ Cartridge::Cartridge(const std::string &filepath)
         //detect the mapper
         std::cout << "Detecting mapper..." << std::endl;
         mapper_id = (header.flags_7 & 0xF0) | ((header.flags_6 & 0xF0) >> 4); //4 bits from flags_7 and 4 bits from flags_6
+        std::cout << "Got Mapper ID: " << (int)mapper_id << std::endl;
+
+        //detect the mirroring
+        std::cout << "Detecting mirroring..." << std::endl;
+        if(header.flags_6 & 0x01)
+        {
+            mirror = VERTICAL;
+            std::cout << "Got Mirroring: Vertical" << std::endl;
+        }
+        else
+        {
+            mirror = HORIZONTAL;
+            std::cout << "Got Mirroring: Horizontal" << std::endl;
+        }
 
         uint8_t fileformat = 1; //for now
         if(fileformat == 0)
@@ -72,7 +86,6 @@ Cartridge::Cartridge(const std::string &filepath)
         {
             case 0:
                 mapper = std::make_shared<Mapper_000>(prg_banks, chr_banks);
-                std::cout << "Got mapper 0!" << std::endl;
                 std::cout << prg_banks << "   " << chr_banks << std::endl;
                 break;
             default:
@@ -94,7 +107,7 @@ Cartridge::~Cartridge()
 
 bool Cartridge::read_cpu(uint16_t addr, uint8_t &data)
 {
-    uint32_t mapped_addr;
+    uint32_t mapped_addr = 0;
     if(mapper->read_map_cpu(addr, mapped_addr))
     {
         data = prg_rom[mapped_addr];
@@ -105,7 +118,7 @@ bool Cartridge::read_cpu(uint16_t addr, uint8_t &data)
 
 bool Cartridge::write_cpu(uint16_t addr, uint8_t data)
 {
-    uint32_t mapped_addr;
+    uint32_t mapped_addr = 0;
     if(mapper->write_map_cpu(addr, mapped_addr))
     {
         prg_rom[mapped_addr] = data;
@@ -116,9 +129,10 @@ bool Cartridge::write_cpu(uint16_t addr, uint8_t data)
 
 bool Cartridge::read_ppu(uint16_t addr, uint8_t &data)
 {
-    uint32_t mapped_addr;
+    uint32_t mapped_addr = 0;
     if(mapper->read_map_ppu(addr, mapped_addr))
     {
+        if(mapped_addr >= chr_rom.size()) return false;
         data = chr_rom[mapped_addr];
         return true;
     }
@@ -127,9 +141,10 @@ bool Cartridge::read_ppu(uint16_t addr, uint8_t &data)
 
 bool Cartridge::write_ppu(uint16_t addr, uint8_t data)
 {
-    uint32_t mapped_addr;
+    uint32_t mapped_addr = 0;
     if(mapper->write_map_ppu(addr, mapped_addr))
     {
+        if(mapped_addr >= chr_rom.size()) return false;
         chr_rom[mapped_addr] = data;
         return true;
     }

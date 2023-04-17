@@ -3,6 +3,7 @@
 CPU::CPU()
 {
     using a = CPU;
+	//credit to javidx9 for the opcode table
 	lookup = 
 	{
 		{ "BRK", &a::BRK, &a::IMM, 7 },{ "ORA", &a::ORA, &a::IZX, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 3 },{ "ORA", &a::ORA, &a::ZP0, 3 },{ "ASL", &a::ASL, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "PHP", &a::PHP, &a::IMP, 3 },{ "ORA", &a::ORA, &a::IMM, 2 },{ "ASL", &a::ASL, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::NOP, &a::IMP, 4 },{ "ORA", &a::ORA, &a::ABS, 4 },{ "ASL", &a::ASL, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
@@ -63,12 +64,14 @@ void CPU::clock()
 	if(cycles == 0)
 	{
 		opcode = read(pc++);
+		setFlag(U, true);
 
 		cycles = lookup[opcode].cycles;
 		uint8_t additional_cycle1 = (this->*lookup[opcode].addrmode)();
 		uint8_t additional_cycle2 = (this->*lookup[opcode].operate)();
 
 		cycles += (additional_cycle1 & additional_cycle2);
+		setFlag(U, true);
 	}
 
 	cycles--;
@@ -166,7 +169,7 @@ uint8_t CPU::IND() //indirect
 	}
 	else //normal behaviour
 	{
-		uint16_t high = read(++addr); //high byte of the absolute address is the value at the address to jump to + 1
+		uint16_t high = read(addr + 1); //high byte of the absolute address is the value at the address to jump to + 1
 		addr_abs = (high << 8) | low; //combine the two bytes to form the absolute address
 	}
 	return 0;
@@ -602,16 +605,31 @@ uint8_t CPU::LDY()
 uint8_t CPU::LSR()
 {
 	fetch();
+	setFlag(C, fetched & 0x01); //set the carry flag with the least significant bit of the fetched value
 	uint8_t temp = fetched >> 1;
 	setFlag(N, false); //clear the negative flag
 	setFlag(Z, temp == 0x00); //set the zero flag if the result is 0
-	setFlag(C, fetched & 0x01); //set the carry flag with the least significant bit of the fetched value
+	if (lookup[opcode].addrmode == &CPU::IMP)
+		a = temp;
+	else
+		write(addr_abs, temp);
 	return 0;
 }
 
 //NOP
 uint8_t CPU::NOP()
 {
+	switch (opcode)
+	{
+	case 0x1C:
+	case 0x3C:
+	case 0x5C:
+	case 0x7C:
+	case 0xDC:
+	case 0xFC:
+		return 1;
+		break;
+	}
 	return 0;
 }
 
@@ -622,7 +640,7 @@ uint8_t CPU::ORA()
 	a = a | fetched;
 	setFlag(Z, a == 0x00); //set zero flag if the value in the accumulator is 0
 	setFlag(N, a & 0x80); //set the negative flag if the high bit of the accumulator is set
-	return 0;
+	return 1;
 }
 
 //PHA
@@ -636,7 +654,9 @@ uint8_t CPU::PHA()
 //PHP
 uint8_t CPU::PHP()
 {
-	write(0x0100 + sp, status); //write the value in the status register to the top of the stack
+	write(0x0100 + sp, status | B | U); //write the value in the status register to the top of the stack
+	setFlag(B, false);
+	setFlag(U, false);
 	sp--; //decrement the stack pointer
 	return 0;
 }
@@ -644,8 +664,8 @@ uint8_t CPU::PHP()
 //PLA
 uint8_t CPU::PLA()
 {
-	a = read(0x0100 + sp); //read the value on the top of the stack into the accumulator
 	sp++; //increment the stack pointer
+	a = read(0x0100 + sp); //read the value on the top of the stack into the accumulator
 	setFlag(Z, a == 0x00); //set the zero flag if the value in the accumulator is set to 0
 	setFlag(N, a & 0x80); //set the negative flag if the high bit of the accumulator is set
 	return 0;
@@ -654,10 +674,9 @@ uint8_t CPU::PLA()
 //PLP
 uint8_t CPU::PLP()
 {
-	status = read(0x0100 + sp); //read the value on the top of the stack into the accumulator
 	sp++; //increment the stack pointer
-	setFlag(Z, status == 0x00); //set the zero flag if the value in the accumulator is set to 0
-	setFlag(N, status & 0x80); //set the negative flag if the high bit of the accumulator is set
+	status = read(0x0100 + sp); //read the value on the top of the stack into the accumulator
+	setFlag(U, true);
 	return 0;
 }
 
@@ -730,11 +749,12 @@ uint8_t CPU::RTS()
 uint8_t CPU::SBC()
 {
 	fetch();
-	uint16_t temp = (uint16_t) a - (uint16_t) fetched - (1 - (uint16_t) getFlag(C)); //subtract the fetched value from the accumulator and the carry flag
+	uint16_t value = ((uint16_t) fetched) ^ 0x00FF; //invert the fetched value
+	uint16_t temp = (uint16_t) a + value + (uint16_t)getFlag(C); //subtract the fetched value from the accumulator and the carry flag
 	setFlag(C, temp > 0x00FF); //set the carry flag if the result is greater than 255
 	setFlag(Z, (temp & 0x00FF) == 0x0000); //set the zero flag if the lower byte of the result is 0
 	setFlag(N, temp & 0x0080); //set the negative flag if the high bit of the lower byte of the result is 1
-	setFlag(V, ((uint16_t) a ^ temp) & ((uint16_t) fetched ^ temp) & 0x0080); //set the overflow flag if the sign of the accumulator and the fetched value are different and the sign of the result is different
+	setFlag(V, (uint16_t(a) ^ temp) & (uint16_t(value) ^ temp) & 0x0080); //set the overflow flag if the sign of the accumulator and the fetched value are different and the sign of the result is different
 	a = temp & 0x00FF; //load the accumulator with the lower byte of the result
 	return 1;
 }
@@ -897,5 +917,5 @@ void CPU::nmi()
 	uint16_t low = read(addr_abs + 0); //read the low byte of the address
 	uint16_t high = read(addr_abs + 1); //read the high byte of the address
 	pc = (high << 8) | low; //set the program counter to the address specified
-	cycles = 7; //set the number of cycles to 7
+	cycles = 8; //set the number of cycles to 7
 }

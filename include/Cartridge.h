@@ -16,12 +16,12 @@ public:
 
 public:
     enum MIRROR
-    [
+    {
         HORIZONTAL,
         VERTICAL,
         ONESCREEN_LO,
         ONESCREEN_HI
-    ] mirror = horizontal;
+    } mirror = HORIZONTAL;
 
 private:
     //memory
