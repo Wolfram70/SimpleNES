@@ -1,7 +1,7 @@
 # SimpleNES
 A simple NES Emulator. <br>
 Thanks to <a href="https://www.youtube.com/@javidx9">javidx9</a> for the wonderful tutorial (and the opcode table). <br>
-##Usage
+## Usage
 Needs the SFML library to work, can be installed with:
 ```
 sudo apt-get install libsfml-dev
