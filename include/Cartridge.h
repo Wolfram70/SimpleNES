@@ -35,6 +35,8 @@ private:
     uint8_t prg_banks = 0; //number of 16KB PRG ROM banks
     uint8_t chr_banks = 0; //number of 8KB CHR ROM banks
 
+    bool valid = true;
+
 public:
     //communication with the main bus (CPU bus)
     bool read_cpu(uint16_t addr, uint8_t &data);
@@ -43,6 +45,7 @@ public:
     //communication with the PPU bus
     bool read_ppu(uint16_t addr, uint8_t &data);
     bool write_ppu(uint16_t addr, uint8_t data);
+    bool getValid() { return valid; }
 };
 
 #endif

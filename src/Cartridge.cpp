@@ -98,6 +98,7 @@ Cartridge::Cartridge(const std::string &filepath)
     else
     {
         std::cout << "File could not be opened!" << std::endl;
+        valid = false;
     }
 }
 
