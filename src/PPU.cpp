@@ -117,7 +117,7 @@ uint8_t PPU::read_cpu(uint16_t addr, bool bReadOnly)
             break;
         case 0x0007: //PPU data register
             data = ppu_data_buffer;
-            ppu_data_buffer = read_ppu(vram_addr.reg & 0xEFFF); //ADDED THIS TO PASS VRAM_ACCESS.NES TEST
+            ppu_data_buffer = read_ppu(vram_addr.reg/*& 0xEFFF*/); //ADDED THIS TO PASS VRAM_ACCESS.NES TEST (makes SMB not run??)
             if(vram_addr.reg > 0x3F00) data = ppu_data_buffer;
             vram_addr.reg = vram_addr.reg + (control.increment_mode ? 32 : 1);
             break;
@@ -195,7 +195,7 @@ uint8_t PPU::read_ppu(uint16_t addr, bool bReadOnly)
     else if(addr >= 0x2000 && addr <= 0x3EFF) //nametable
     {
         addr &= 0x0FFF; //mask to valid range
-        if(cartridge->mirror == Cartridge::MIRROR::VERTICAL)
+        if(cartridge->mirror == Mapper::MIRROR::VERTICAL)
         {
             //if vertical mirroring
             if(addr >= 0x0000 && addr <= 0x03FF) data = nametable[0][addr & 0x03FF];
@@ -203,7 +203,7 @@ uint8_t PPU::read_ppu(uint16_t addr, bool bReadOnly)
             else if(addr >= 0x0800 && addr <= 0x0BFF) data = nametable[0][addr & 0x03FF];
             else if(addr >= 0x0C00 && addr <= 0x0FFF) data = nametable[1][addr & 0x03FF];
         }
-        else if(cartridge->mirror == Cartridge::MIRROR::HORIZONTAL)
+        else if(cartridge->mirror == Mapper::MIRROR::HORIZONTAL)
         {
             //if horizontal mirroring
             if(addr >= 0x0000 && addr <= 0x03FF) data = nametable[0][addr & 0x03FF];
@@ -242,7 +242,7 @@ void PPU::write_ppu(uint16_t addr, uint8_t data)
     else if(addr >= 0x2000 && addr <= 0x3EFF) //nametable
     {
         addr &= 0x0FFF; //mask to valid range
-        if(cartridge->mirror == Cartridge::MIRROR::VERTICAL)
+        if(cartridge->mirror == Mapper::MIRROR::VERTICAL)
         {
             //if vertical mirroring
             if(addr >= 0x0000 && addr <= 0x03FF) nametable[0][addr & 0x03FF] = data;
@@ -250,7 +250,7 @@ void PPU::write_ppu(uint16_t addr, uint8_t data)
             else if(addr >= 0x0800 && addr <= 0x0BFF) nametable[0][addr & 0x03FF] = data;
             else if(addr >= 0x0C00 && addr <= 0x0FFF) nametable[1][addr & 0x03FF] = data;
         }
-        else if(cartridge->mirror == Cartridge::MIRROR::HORIZONTAL)
+        else if(cartridge->mirror == Mapper::MIRROR::HORIZONTAL)
         {
             //if horizontal mirroring
             if(addr >= 0x000 && addr <= 0x3FF) nametable[0][addr & 0x3FF] = data;
@@ -294,6 +294,7 @@ void PPU::reset()
 	bg_shifter_attrib_lo = 0x0000;
 	bg_shifter_attrib_hi = 0x0000;
 	status.reg = 0x00;
+    status.vertical_blank = 0;
 	mask.reg = 0x00;
 	control.reg = 0x00;
 	vram_addr.reg = 0x0000;

@@ -2,6 +2,7 @@
 #define MAPPER_H
 
 #include <cstdint>
+#include <vector>
 
 class Mapper
 {
@@ -10,11 +11,23 @@ public:
     ~Mapper() {};
 
 public:
+    enum MIRROR
+    {
+        HORIZONTAL,
+        VERTICAL,
+        ONESCREEN_LO,
+        ONESCREEN_HI
+    } mirror = HORIZONTAL;
+
+public:
     //virtual functions
-    virtual bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr) = 0;
+    virtual bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
     virtual bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) = 0;
     virtual bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) = 0;
     virtual bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) = 0;
+    virtual void reset() {};
+    void set_mirror(MIRROR mirror) { this->mirror = mirror; }
+    MIRROR get_mirror() { return mirror; }
 
 protected:
     uint8_t n_prg_banks = 0;
@@ -24,14 +37,48 @@ protected:
 class Mapper_000 : public Mapper
 {
 public:
-    Mapper_000(uint8_t n_prg_banks, uint8_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {}
+    Mapper_000(uint8_t n_prg_banks, uint8_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
+        PRG_RAM.resize(32 * 1024);
+    }
     ~Mapper_000() {};
 
+private:
+    std::vector<uint8_t> PRG_RAM;
+
 public:
-    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr) override; 
+    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override; 
     bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) override;
     bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
     bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+
+    void reset() override {}
+};
+
+class Mapper_001 : public Mapper
+{
+public:
+    Mapper_001(uint8_t n_prg_banks, uint8_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
+        PRG_RAM.resize(32 * 1024);
+    }
+    ~Mapper_001() {};
+
+private:
+    //registers
+    int8_t SR = 0x10;
+    uint8_t CR = 0x0C;
+    uint8_t CHR0 = 0x00;
+    uint8_t CHR1 = 0x00;
+    uint8_t PRG = 0x00;
+
+    std::vector<uint8_t> PRG_RAM;
+
+public:
+    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override; 
+    bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) override;
+    bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+    bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+    
+    void reset() override;
 };
 
 #endif

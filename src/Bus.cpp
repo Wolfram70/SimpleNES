@@ -77,6 +77,7 @@ void Bus::reset()
 {
     cpu.reset();
     ppu.reset();
+    cartridge->reset();
     nSystemClockCounter = 0;
 }
 

@@ -48,16 +48,18 @@ Cartridge::Cartridge(const std::string &filepath)
         std::cout << "Detecting mirroring..." << std::endl;
         if(header.flags_6 & 0x01)
         {
-            mirror = VERTICAL;
+            mirror = Mapper::MIRROR::VERTICAL;
             std::cout << "Got Mirroring: Vertical" << std::endl;
         }
         else
         {
-            mirror = HORIZONTAL;
+            mirror = Mapper::MIRROR::HORIZONTAL;
             std::cout << "Got Mirroring: Horizontal" << std::endl;
         }
 
         uint8_t fileformat = 1; //for now
+        if((header.flags_7 & 0x0C) == 0x08) fileformat = 2;
+
         if(fileformat == 0)
         {
 
@@ -73,12 +75,25 @@ Cartridge::Cartridge(const std::string &filepath)
             //read the CHR ROM
             std::cout << "Reading CHR ROM..." << std::endl;
             chr_banks = header.chr_rom_chunks;
-            chr_rom.resize(chr_banks * 8192);
+            if(chr_banks == 0)
+            {
+                chr_rom.resize(8192);
+            }
+            else
+            {
+                chr_rom.resize(chr_banks * 8192);
+            }
             ifs.read((char*)chr_rom.data(), chr_rom.size());
         }
         else if(fileformat == 2)
         {
+            prg_banks = ((header.prg_ram_size & 0x07) << 8) | header.prg_rom_chunks;
+			prg_rom.resize(prg_banks * 16384);
+			ifs.read((char*)prg_rom.data(), prg_rom.size());
 
+			chr_banks = ((header.prg_ram_size & 0x38) << 8) | header.chr_rom_chunks;
+			chr_rom.resize(chr_banks * 8192);
+			ifs.read((char*)chr_rom.data(), chr_rom.size());
         }
 
         //load the mapper
@@ -86,10 +101,17 @@ Cartridge::Cartridge(const std::string &filepath)
         {
             case 0:
                 mapper = std::make_shared<Mapper_000>(prg_banks, chr_banks);
-                std::cout << prg_banks << "   " << chr_banks << std::endl;
+                mapper->set_mirror(mirror);
+                std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
+                break;
+            case 1:
+                mapper = std::make_shared<Mapper_001>(prg_banks, chr_banks);
+                mapper->set_mirror(mirror);
+                std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
                 break;
             default:
                 std::cout << "Mapper not implemented!" << std::endl;
+                valid = false;
                 break;
         }
 
@@ -109,8 +131,9 @@ Cartridge::~Cartridge()
 bool Cartridge::read_cpu(uint16_t addr, uint8_t &data)
 {
     uint32_t mapped_addr = 0;
-    if(mapper->read_map_cpu(addr, mapped_addr))
+    if(mapper->read_map_cpu(addr, mapped_addr, data))
     {
+        if(mapped_addr == 0xFFFFFFFF) return true;
         data = prg_rom[mapped_addr];
         return true;
     }
@@ -120,11 +143,13 @@ bool Cartridge::read_cpu(uint16_t addr, uint8_t &data)
 bool Cartridge::write_cpu(uint16_t addr, uint8_t data)
 {
     uint32_t mapped_addr = 0;
-    if(mapper->write_map_cpu(addr, mapped_addr))
+    if(mapper->write_map_cpu(addr, mapped_addr, data))
     {
+        if(mapped_addr == 0xFFFFFFFF) return true;
         prg_rom[mapped_addr] = data;
         return true;
     }
+    mirror = mapper->get_mirror();
     return false;
 }
 

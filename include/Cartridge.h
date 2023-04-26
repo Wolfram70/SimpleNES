@@ -15,13 +15,7 @@ public:
     ~Cartridge();
 
 public:
-    enum MIRROR
-    {
-        HORIZONTAL,
-        VERTICAL,
-        ONESCREEN_LO,
-        ONESCREEN_HI
-    } mirror = HORIZONTAL;
+    Mapper::MIRROR mirror = Mapper::MIRROR::HORIZONTAL;
 
 private:
     //memory
@@ -46,6 +40,8 @@ public:
     bool read_ppu(uint16_t addr, uint8_t &data);
     bool write_ppu(uint16_t addr, uint8_t data);
     bool getValid() { return valid; }
+
+    void reset() { if(mapper.get() != nullptr) mapper->reset(); }
 };
 
 #endif
