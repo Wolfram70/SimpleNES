@@ -1,6 +1,6 @@
 # SimpleNES
 A simple NES Emulator. <br>
-Thanks to <a href="https://www.youtube.com/@javidx9">javidx9</a> for the wonderful tutorial (and the opcode table). <br>
+Thanks to <a href="https://www.youtube.com/@javidx9">javidx9</a> for the wonderful tutorial that helped me get started (and the opcode table). <br>
 ## Usage
 Needs the SFML library to work, can be installed with:
 ```
