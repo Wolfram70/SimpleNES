@@ -7,7 +7,7 @@
 class Mapper
 {
 public:
-    Mapper(uint8_t n_prg_banks, uint8_t u_chr_banks): n_prg_banks(n_prg_banks), n_chr_banks(n_chr_banks) {}
+    Mapper(uint16_t n_prg_banks, uint16_t u_chr_banks): n_prg_banks(n_prg_banks), n_chr_banks(n_chr_banks) {}
     ~Mapper() {};
 
 public:
@@ -30,14 +30,14 @@ public:
     MIRROR get_mirror() { return mirror; }
 
 protected:
-    uint8_t n_prg_banks = 0;
-    uint8_t n_chr_banks = 0;
+    uint16_t n_prg_banks = 0;
+    uint16_t n_chr_banks = 0;
 };
 
 class Mapper_000 : public Mapper
 {
 public:
-    Mapper_000(uint8_t n_prg_banks, uint8_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
+    Mapper_000(uint16_t n_prg_banks, uint16_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
         PRG_RAM.resize(32 * 1024);
     }
     ~Mapper_000() {};
@@ -56,9 +56,10 @@ public:
 
 class Mapper_001 : public Mapper
 {
+    //the chr_ram is present on the cartridge as 8KB chr rom itself (since thats the max, if any, for mapper 001 also iNES header)
 public:
-    Mapper_001(uint8_t n_prg_banks, uint8_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
-        PRG_RAM.resize(32 * 1024);
+    Mapper_001(uint16_t n_prg_banks, uint16_t n_chr_banks, uint32_t prg_ram_size): Mapper(n_prg_banks, n_chr_banks) {
+        PRG_RAM.resize(prg_ram_size);
     }
     ~Mapper_001() {};
 

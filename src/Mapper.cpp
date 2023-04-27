@@ -61,7 +61,7 @@ bool Mapper_000::write_map_ppu(uint16_t addr, uint32_t &mapped_addr)
 //MAPPER 001
 
 //TODO: consecutive cycle writes ignore
-//TODO: Add support to SXROM, SOROM, SUROM (the ones with 8KB CHR banks)
+//TODO: Add support to SXROM, SOROM, SUROM (the ones with 8KB CHR banks) (only with NES2 headers)
 
 bool Mapper_001::read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
 {
@@ -75,6 +75,8 @@ bool Mapper_001::read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &dat
     {
         uint8_t mode = (CR & 0x0C) >> 2;
         uint8_t index;
+        uint32_t bank_256k = 0;
+        //TODO: add support for 512k prg rom, chr0 and chr1 msb hold the bank select
         switch(mode)
         {
             case 0:

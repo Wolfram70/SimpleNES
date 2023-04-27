@@ -1,6 +1,7 @@
 #include "../include/Cartridge.h"
 #include <fstream>
 #include <iostream>
+#include <math.h>
 
 //iNES Header
 struct iNESHeader
@@ -57,8 +58,30 @@ Cartridge::Cartridge(const std::string &filepath)
             std::cout << "Got Mirroring: Horizontal" << std::endl;
         }
 
+        //check iNES or NES 2.0
+        bool ines = false;
+        if (header.name[0]=='N' && header.name[1] =='E' && header.name[2] =='S' && header.name[3] == 0x1A)
+            ines = true;
+
+        bool nes2 = false;
+        if (ines == true && (header.flags_7 & 0x0C) == 0x08)
+            nes2 = true;
+
+        if(nes2)
+        {
+            std::cout << "FileFormat: NES 2.0" << std::endl;
+        }
+        else if(ines)
+        {
+            std::cout << "FileFormat: iNES" << std::endl;
+        }
+        else
+        {
+            std::cout << "FileFormat: Unknown" << std::endl;
+        }
+
         uint8_t fileformat = 1; //for now
-        if((header.flags_7 & 0x0C) == 0x08) fileformat = 2;
+        if(nes2) fileformat = 2;
 
         if(fileformat == 0)
         {
@@ -77,23 +100,45 @@ Cartridge::Cartridge(const std::string &filepath)
             chr_banks = header.chr_rom_chunks;
             if(chr_banks == 0)
             {
-                chr_rom.resize(8192);
+                chr_rom.resize(8192); //8KB of CHR RAM
             }
             else
             {
                 chr_rom.resize(chr_banks * 8192);
             }
             ifs.read((char*)chr_rom.data(), chr_rom.size());
+            prg_ram_size = 32 * 1024; //32KB assumed for compatibility since iNES prg_ram flag is usually unused
         }
         else if(fileformat == 2)
         {
-            prg_banks = ((header.prg_ram_size & 0x07) << 8) | header.prg_rom_chunks;
+            //TODO: Finish NES2 header mapping (the chr_ram and stuff)
+            prg_banks = (uint16_t) ((header.flags_9 & 0x0F) << 8) | header.prg_rom_chunks;
 			prg_rom.resize(prg_banks * 16384);
+            uint32_t size = 0;
+            if((header.flags_9 & 0x0F) == 0x0F)
+            {
+                //exponential notation
+                size = (uint32_t)pow(2, header.prg_rom_chunks >> 2) * (2 * (header.prg_rom_chunks & 0x03) + 1);
+                prg_rom.resize(size);
+                //TODO Handle this properly in the mapper
+            }
 			ifs.read((char*)prg_rom.data(), prg_rom.size());
 
-			chr_banks = ((header.prg_ram_size & 0x38) << 8) | header.chr_rom_chunks;
+			chr_banks = (uint16_t) ((header.flags_9 & 0xF0) << 4) | header.chr_rom_chunks;
 			chr_rom.resize(chr_banks * 8192);
+            if((header.flags_9 & 0xF0) == 0xF0)
+            {
+                //exponential notation
+                size = (uint32_t)pow(2, header.chr_rom_chunks >> 2) * (2 * (header.chr_rom_chunks & 0x03) + 1);
+                chr_rom.resize(size);
+                //TODO Handle this properly in the mapper
+            }
 			ifs.read((char*)chr_rom.data(), chr_rom.size());
+            prg_ram_size = (uint32_t) 64 << (header.flags_10 & 0x0F);
+            std::cout << "PRG_RAM_SIZE: " << prg_ram_size  << " bytes"<< std::endl;
+            if(prg_ram_size == 0) prg_ram_size = 8192;
+            chr_ram_size = (uint32_t) 64 << ((uint8_t)header.padding[0] & 0x0F);
+            std::cout << "CHR_RAM_SIZE: " << chr_ram_size  << " bytes"<< std::endl;
         }
 
         //load the mapper
@@ -105,7 +150,7 @@ Cartridge::Cartridge(const std::string &filepath)
                 std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
                 break;
             case 1:
-                mapper = std::make_shared<Mapper_001>(prg_banks, chr_banks);
+                mapper = std::make_shared<Mapper_001>(prg_banks, chr_banks, prg_ram_size);
                 mapper->set_mirror(mirror);
                 std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
                 break;

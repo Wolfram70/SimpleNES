@@ -26,8 +26,10 @@ private:
     std::shared_ptr<Mapper> mapper;
 
     uint8_t mapper_id = 0; //mapper ID
-    uint8_t prg_banks = 0; //number of 16KB PRG ROM banks
-    uint8_t chr_banks = 0; //number of 8KB CHR ROM banks
+    uint16_t prg_banks = 0; //number of 16KB PRG ROM banks
+    uint16_t chr_banks = 0; //number of 8KB CHR ROM banks
+    uint32_t prg_ram_size = 0; //size of PRG RAM in 8KB units
+    uint32_t chr_ram_size = 0; //size of CHR RAM in 8KB units
 
     bool valid = true;
 

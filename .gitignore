@@ -2,3 +2,4 @@ test_exp/
 .vscode/
 output
 *.nes
+test_roms/
