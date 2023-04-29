@@ -6,6 +6,7 @@
 #include <memory>
 #include "CPU.h"
 #include "PPU.h"
+#include "APU.h"
 #include "Cartridge.h"
 
 class Bus
@@ -17,6 +18,7 @@ public:
 public: //devices on the bus
     CPU cpu; //the 6502 processor
     PPU ppu; //the 2C02 PPU
+    APU apu; //the 2A03 APU
     
     std::array<uint8_t, 2048> cpu_ram; //2KB of RAM
     std::shared_ptr<Cartridge> cartridge; //the cartridge inserted in the console
@@ -35,9 +37,16 @@ private:
     bool dma_transfer = false;
     bool dma_dummy = true;
 
+    //AUDIO
+    double timePerSample = 0.0f;
+    double timePerClock = 0.0f;
+    double timeSinceLastSample = 0.0f;
+
 public:
     //controller state
     uint8_t controller_state[2];
+    //audio state
+    double audio_sample = 0.0;
 
 public: //read and write
     void write_cpu(uint16_t addr, uint8_t data);
@@ -47,6 +56,7 @@ public:
     //interface
     void insert_cartridge(const std::shared_ptr<Cartridge> &cartridge);
     void reset();
-    void clock();
+    bool clock();
+    void setSampleFrequency(uint32_t sample_rate);
 };
 #endif

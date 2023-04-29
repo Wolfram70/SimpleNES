@@ -7,6 +7,20 @@
 #include <SFML/Graphics/Sprite.hpp>
 
 #include "../include/Bus.h"
+#include "../include/Sound.h"
+
+Bus nes;
+
+float sound(int channel, float globalTime, float timeStep)
+{
+    while(!nes.clock());
+    return static_cast<float>(nes.audio_sample);
+}
+
+void updateWithAudio()
+{
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -24,12 +38,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    Bus nes;
     std::shared_ptr<Cartridge> cartridge = std::make_shared<Cartridge>(argv[1]);
     if(!cartridge->getValid())
         return 0;
     
     nes.insert_cartridge(cartridge);
+    nes.setSampleFrequency(44100);
     nes.reset();
 
     sf::Texture texture;
@@ -38,61 +52,93 @@ int main(int argc, char *argv[])
     sprite.setTexture(texture);
     sf::Vector2f targetSize(256.0f, 240.0f);
 
-    float framerate = 60.0f;
-    float frametime = 1.0f / framerate;
-    float currentelapsed = 0.0f;
-    sf::Clock clock;
+    NES::Sound::create(44100, 1, 8, 512);
+    NES::Sound::setUserFunc(sound);
 
-
-    //TEMP VAR START
-    int palette_color = 0;
-    int palette_index = 0;
-    //TEMP VAR END
+    nes.controller[0] = 0x00;
 
     while (window.isOpen())
-    {
-        nes.controller[0] = 0x00;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::X))
-            nes.controller[0] |= 0x80;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z))
-            nes.controller[0] |= 0x40;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-            nes.controller[0] |= 0x20;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
-            nes.controller[0] |= 0x10;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-            nes.controller[0] |= 0x08;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-            nes.controller[0] |= 0x04;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
-            nes.controller[0] |= 0x02;
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
-            nes.controller[0] |= 0x01;
-        
+    {   
         sf::Event event;
         while (window.pollEvent(event))
         {
-            if(event.type == sf::Event::Closed)
-                window.close();
-        }
-
-        if(clock.getElapsedTime() < sf::seconds(frametime))
-        {
-
-        }
-        else
-        {
-            clock.restart();
-            do
-            { 
-                nes.clock();
-            } while (!nes.ppu.frame_complete);
-            do
+            switch(event.type)
             {
-                nes.clock();
-            } while (!nes.cpu.complete());
-            nes.ppu.frame_complete = false;
+                case sf::Event::Closed:
+                    window.close();
+                    break;
+                case sf::Event::KeyPressed:
+                    switch(event.key.code)
+                    {
+                        case sf::Keyboard::Key::X:
+                            nes.controller[0] |= 0x80;
+                            break;
+                        case sf::Keyboard::Key::Z:
+                            nes.controller[0] |= 0x40;
+                            break;
+                        case sf::Keyboard::Key::A:
+                            nes.controller[0] |= 0x20;
+                            break;
+                        case sf::Keyboard::Key::S:
+                            nes.controller[0] |= 0x10;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                            nes.controller[0] |= 0x08;
+                            nes.controller[0] &= ~0x04;
+                            break;
+                        case sf::Keyboard::Key::Down:
+                            nes.controller[0] |= 0x04;
+                            nes.controller[0] &= ~0x08;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                            nes.controller[0] |= 0x02;
+                            nes.controller[0] &= ~0x01;
+                            break;
+                        case sf::Keyboard::Key::Right:
+                            nes.controller[0] |= 0x01;
+                            nes.controller[0] &= ~0x02;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case sf::Event::KeyReleased:
+                    switch(event.key.code)
+                    {
+                        case sf::Keyboard::Key::X:
+                            nes.controller[0] &= ~0x80;
+                            break;
+                        case sf::Keyboard::Key::Z:
+                            nes.controller[0] &= ~0x40;
+                            break;
+                        case sf::Keyboard::Key::A:
+                            nes.controller[0] &= ~0x20;
+                            break;
+                        case sf::Keyboard::Key::S:
+                            nes.controller[0] &= ~0x10;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                            nes.controller[0] &= ~0x08;
+                            break;
+                        case sf::Keyboard::Key::Down:
+                            nes.controller[0] &= ~0x04;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                            nes.controller[0] &= ~0x02;
+                            break;
+                        case sf::Keyboard::Key::Right:
+                            nes.controller[0] &= ~0x01;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
+        
+        updateWithAudio();
 
         targetSize = window.getView().getSize();
 

@@ -61,7 +61,8 @@ bool Mapper_000::write_map_ppu(uint16_t addr, uint32_t &mapped_addr)
 //MAPPER 001
 
 //TODO: consecutive cycle writes ignore
-//TODO: Add support to SXROM, SOROM, SUROM (the ones with 8KB CHR banks) (only with NES2 headers)
+//TODO: Add support to SXROM, SOROM, SUROM (the ones with more than 8KB PRG RAM and 8KB CHR RAM) (only with NES2 headers)
+//NOTE: Only a handful of games seem to be SOROM, and SXROM and SUROM are japan-only, so not urgent, SNROM seems to be working (detailed tests needed)
 
 bool Mapper_001::read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
 {

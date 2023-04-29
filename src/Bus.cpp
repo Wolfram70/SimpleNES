@@ -1,6 +1,8 @@
 #include "../include/Bus.h"
 #include <iostream>
 
+#define PPU_CLOCK_FREQ 5369318.0
+
 Bus::Bus()
 {
     //clear out ram
@@ -27,9 +29,13 @@ void Bus::write_cpu(uint16_t addr, uint8_t data)
     {
         cpu_ram[addr & 0x07FF] = data; //mirror the ram to 0x0000 - 0x07FF (2KB)
     }
-    else if (addr >= 0x2000 && addr <= 0x3FFF) //8KB of address range
+    else if(addr >= 0x2000 && addr <= 0x3FFF) //8KB of address range
     {
         ppu.write_cpu(addr & 0x0007, data); //mirror the PPU registers to 0x0000 - 0x0007
+    }
+    else if((addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015 || addr == 0x4017) //REMINDER: what about controller 2?
+    {
+        apu.write_cpu(addr, data);
     }
     else if(addr == 0x4014) //DMA
     {
@@ -81,9 +87,12 @@ void Bus::reset()
     nSystemClockCounter = 0;
 }
 
-void Bus::clock()
+bool Bus::clock()
 {
     ppu.clock();
+
+    apu.clock();
+
     if(nSystemClockCounter % 3 == 0)
     {
         if(dma_transfer)
@@ -118,6 +127,16 @@ void Bus::clock()
         }
     }
 
+    bool sampleReady = false;
+    timeSinceLastSample += timePerClock;
+
+    if(timeSinceLastSample >= timePerSample)
+    {
+        timeSinceLastSample -= timePerSample;
+        audio_sample = apu.getSample();
+        sampleReady = true;
+    }
+
     if(ppu.nmi)
     {
         ppu.nmi = false;
@@ -125,4 +144,12 @@ void Bus::clock()
     }
 
     nSystemClockCounter++;
+
+    return sampleReady;
+}
+
+void Bus::setSampleFrequency(uint32_t sample_rate)
+{
+    timePerSample = 1.0 / double(sample_rate);
+    timePerClock = 1.0 / double(PPU_CLOCK_FREQ);
 }
