@@ -44,6 +44,7 @@ public:
     bool getValid() { return valid; }
 
     void reset() { if(mapper.get() != nullptr) mapper->reset(); }
+    bool save(std::string filepath);
 };
 
 #endif

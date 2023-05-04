@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     }
 
     std::shared_ptr<Cartridge> cartridge = std::make_shared<Cartridge>(argv[1]);
+    std::string save_file;
     if(!cartridge->getValid())
         return 0;
     
@@ -66,6 +67,12 @@ int main(int argc, char *argv[])
             {
                 case sf::Event::Closed:
                     NES::Sound::destroy();
+                    //save the prg ram to a file
+                    save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
+                    if(nes.cartridge->save(save_file))
+                        std::cout << "Saved to " << save_file << std::endl;
+                    else
+                        std::cout << "Failed to save to " << save_file << std::endl;
                     window.close();
                     break;
                 case sf::Event::KeyPressed:
@@ -98,6 +105,17 @@ int main(int argc, char *argv[])
                         case sf::Keyboard::Key::Right:
                             nes.controller[0] |= 0x01;
                             nes.controller[0] &= ~0x02;
+                            break;
+                        case sf::Keyboard::Key::R:
+                            nes.reset();
+                            break;
+                        case sf::Keyboard::Key::P:
+                            //save the prg ram to a file
+                            save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
+                            if(nes.cartridge->save(save_file))
+                                std::cout << "Saved to " << save_file << std::endl;
+                            else
+                                std::cout << "Failed to save to " << save_file << std::endl;
                             break;
                         default:
                             break;

@@ -146,6 +146,7 @@ Cartridge::Cartridge(const std::string &filepath)
         {
             case 0:
                 mapper = std::make_shared<Mapper_000>(prg_banks, chr_banks);
+                prg_ram_size = mapper->PRG_RAM.size();
                 mapper->set_mirror(mirror);
                 std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
                 break;
@@ -161,6 +162,26 @@ Cartridge::Cartridge(const std::string &filepath)
         }
 
         ifs.close();
+
+        //check for save file
+        std::string save_file_name = filepath.substr(0, filepath.size() - 4) + ".sav";
+        std::ifstream save_file(save_file_name, std::ios::binary);
+        if(save_file.is_open())
+        {
+            std::cout << "Save file found!" << std::endl;
+            save_file.seekg(0, std::ios::end);
+            uint32_t save_size = save_file.tellg();
+            save_file.seekg(0, std::ios::beg);
+            if(save_size == prg_ram_size)
+            {
+                save_file.read((char*)mapper->PRG_RAM.data(), prg_ram_size);
+            }
+            else
+            {
+                std::cout << "Save file size does not match PRG RAM size!" << std::endl;
+            }
+            save_file.close();
+        }
     }
     else
     {
@@ -171,6 +192,22 @@ Cartridge::Cartridge(const std::string &filepath)
 
 Cartridge::~Cartridge()
 {
+}
+
+bool Cartridge::save(std::string file_name)
+{
+    std::ofstream save_file(file_name, std::ios::binary | std::ios::trunc);
+    if(save_file.is_open())
+    {
+        if(mapper->PRG_RAM.size() != prg_ram_size)
+        {
+            return false;
+        }
+        save_file.write((char*)mapper->PRG_RAM.data(), prg_ram_size);
+        save_file.close();
+        return true;
+    }
+    return false;
 }
 
 bool Cartridge::read_cpu(uint16_t addr, uint8_t &data)

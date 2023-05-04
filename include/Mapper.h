@@ -29,6 +29,9 @@ public:
     void set_mirror(MIRROR mirror) { this->mirror = mirror; }
     MIRROR get_mirror() { return mirror; }
 
+public:
+    std::vector<uint8_t> PRG_RAM;
+
 protected:
     uint16_t n_prg_banks = 0;
     uint16_t n_chr_banks = 0;
@@ -41,9 +44,6 @@ public:
         PRG_RAM.resize(32 * 1024);
     }
     ~Mapper_000() {};
-
-private:
-    std::vector<uint8_t> PRG_RAM;
 
 public:
     bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override; 
@@ -70,8 +70,6 @@ private:
     uint8_t CHR0 = 0x00;
     uint8_t CHR1 = 0x00;
     uint8_t PRG = 0x00;
-
-    std::vector<uint8_t> PRG_RAM;
 
 public:
     bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override; 
