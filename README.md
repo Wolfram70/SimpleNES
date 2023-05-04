@@ -8,7 +8,7 @@ sudo apt-get install libsfml-dev
 ```
 Build with:
 ```
-g++ src/*.cpp -lsfml-graphics -lsfml-system -lsfml-window -o <filename>
+g++ src/*.cpp -lsfml-graphics -lsfml-system -lsfml-window -lasound -o <filename>
 ```
 Use with:
 ```
