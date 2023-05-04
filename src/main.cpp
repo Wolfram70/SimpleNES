@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
             switch(event.type)
             {
                 case sf::Event::Closed:
+                    NES::Sound::destroy();
                     window.close();
                     break;
                 case sf::Event::KeyPressed:
