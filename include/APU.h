@@ -162,6 +162,90 @@ struct FrequencySweeper
     }
 };
 
+
+struct TriangleSequencer
+{
+    uint8_t output = 15;
+    uint16_t timer = 0x0000;
+    uint16_t timer_reload = 0x0000;
+    uint8_t linear_counter = 0x00;
+    uint8_t reload = 0x00;
+    uint8_t length_counter = 0x00;
+    bool halt = false;
+    bool reload_flag = false;
+    bool climb = false;
+
+    void linear_clock()
+    {
+        if(reload_flag)
+        {
+            linear_counter = reload;
+        }
+        else
+        {
+            if(linear_counter > 0)
+            {
+                linear_counter--;
+            }
+        }
+
+        if(!halt)
+        {
+            reload = 0;
+        }
+    }
+
+    void length_clock()
+    {
+        if(!halt && length_counter > 0)
+        {
+            length_counter--;
+        }
+    }
+
+    void clock()
+    {
+        if(climb)
+        {
+            if(output < 15)
+            {
+                if(timer == 0)
+                {
+                    timer = timer_reload + 1;
+                    if(linear_counter > 0 && length_counter > 0)
+                    {
+                        output++;
+                    }
+                }
+            }
+            else
+            {
+                climb = false;
+            }
+        }
+        else
+        {
+            if(output > 0)
+            {
+                if(timer == 0)
+                {
+                    timer = timer_reload + 1;
+                    if(linear_counter > 0 && length_counter > 0)
+                    {
+                        output--;
+                    }
+                }
+            }
+            else
+            {
+                climb = true;
+            }
+        }
+
+        timer--;
+    }
+};
+
 struct OscPulse
 {
     double frequency = 0.0;
@@ -191,6 +275,36 @@ struct OscPulse
         }
 
         return (2.0 * amplitude / pi) * (a - b);
+    }
+};
+
+struct OscTriangle
+{
+    double frequency = 0.0;
+    double amplitude = 1;
+    double pi = 3.14159;
+    double harmonics  = 10;
+
+    double sample(double t)
+    {
+        double a = 0;
+        double b = 0;
+
+        auto approxsin = [](float t)
+        {
+            float j = t * 0.15915f;
+            j = j - (int)j;
+            return 20.785f * j * (j - 0.5f) * (j - 1.0f);
+        };
+
+        for(int i = 1; i < harmonics; i++)
+        {
+            double c = i * pi * frequency * t * 2.0;
+            a += - approxsin(c) / (i * i);
+            b += - approxsin(c - pi * i) / (i * i);
+        }
+
+        return (8.0 * amplitude / (pi * pi)) * (a - b);
     }
 };
 
@@ -229,6 +343,13 @@ private:
     bool pulse2_halt = false;
     double pulse2_sample = 0.0;
     double pulse2_output = 0.0;
+
+    //triangle
+    TriangleSequencer triangle_seq;
+    OscTriangle triangle_osc;
+    bool triangle_enable = false;
+    double triangle_sample = 0.0;
+    double triangle_output = 0.0;
 
 public:
     uint16_t pulse1_visual = 0;

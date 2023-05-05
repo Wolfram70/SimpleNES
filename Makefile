@@ -5,6 +5,8 @@ WARN = -Wall
 SRC = src/*.cpp
 TARGET = emu
 
+# TODO: Add proper tests and checks
+
 all: $(SRC)
 	$(CC) $(SRC) $(CFLAGS) -o bin/$(TARGET)
 

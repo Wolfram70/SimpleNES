@@ -103,6 +103,16 @@ void APU::write_cpu(uint16_t addr, uint8_t data)
             pulse2_env.start = true;
             break;
         case 0x4008:
+            triangle_seq.halt = (data & 0x80);
+            triangle_seq.reload = (data & 0x7F);
+            break;
+        case 0x400A:
+            triangle_seq.timer_reload = (triangle_seq.timer_reload & 0xFF00) | data;
+            break;
+        case 0x400B:
+            triangle_seq.timer_reload = (triangle_seq.timer_reload & 0x00FF) | (uint16_t)((data & 0x07) << 8);
+            triangle_seq.length_counter = length_table[(data & 0xF8) >> 3];
+            triangle_seq.reload_flag = true;
             break;
         case 0x400C:
             break;
@@ -111,6 +121,9 @@ void APU::write_cpu(uint16_t addr, uint8_t data)
         case 0x4015:
             pulse1_enable = (data & 0x01);
             pulse2_enable = (data & 0x02);
+            triangle_enable = (data & 0x04);
+            if(!triangle_enable)
+                triangle_seq.length_counter = 0;
             break;
         case 0x400F:
             pulse1_env.start = true;
@@ -130,6 +143,11 @@ void APU::clock()
     bool half_frame_clock = false;
 
     globalTime += (0.3333333333 / 1789773.0);
+
+    if(clock_counter % 3 == 0)
+    {
+        triangle_seq.clock();
+    }
 
     if(clock_counter % 6 == 0)
     {
@@ -166,15 +184,19 @@ void APU::clock()
         {
             pulse1_env.clock(pulse1_halt);
             pulse2_env.clock(pulse2_halt);
+
+            triangle_seq.linear_clock();
         }
 
         if(half_frame_clock) //adjust note length and sweep
         {
             pulse1_len.clock(pulse1_enable, pulse1_halt);
-            pulse1_sweep.clock(pulse1_seq.reload, 1);
+            pulse1_sweep.clock(pulse1_seq.reload, 0);
 
             pulse2_len.clock(pulse2_enable, pulse2_halt);
-            pulse2_sweep.clock(pulse2_seq.reload, 0);
+            pulse2_sweep.clock(pulse2_seq.reload, 1);
+
+            triangle_seq.length_clock();
         }
 
         //pulse 1
@@ -195,11 +217,13 @@ void APU::clock()
         else
         {
             pulse1_output = 0;
+            pulse1_sample = 0;
         }
 
         if(!pulse1_enable)
         {
             pulse1_output = 0;
+            pulse1_sample = 0;
         }
 
         //pulse 2
@@ -220,11 +244,29 @@ void APU::clock()
         else
         {
             pulse2_output = 0;
+            pulse2_sample = 0;
         }
 
         if(!pulse2_enable)
         {
             pulse2_output = 0;
+            pulse2_sample = 0;
+        }
+
+        //triangle
+
+        triangle_osc.frequency = 1789773.0 / (32.0 * (double)(triangle_seq.timer_reload + 1));
+        triangle_osc.amplitude = (double)(15 - 1) / 16.0;
+        triangle_sample = triangle_osc.sample(globalTime);
+
+        if(triangle_enable && triangle_seq.timer_reload > 2 && triangle_seq.length_counter > 0)
+        {
+            triangle_output += (triangle_sample - triangle_output) * 0.5;
+        }
+        else
+        {
+            triangle_output = 0;
+            triangle_sample = 0;
         }
     }
 
@@ -242,6 +284,7 @@ void APU::reset()
 double APU::getSample()
 {
     // return ((1.0 * pulse1_output) - 0.5) * 0.1 +
-    //         ((1.0 * pulse2_output) - 0.5) * 0.1;
-    return (pulse1_sample + pulse2_sample - 1.0) * 0.1;
+    //         ((1.0 * pulse2_output) - 0.5) * 0.1 +
+    //         ((1.0 * triangle_output) - 0.5) * 0.1;
+    return (pulse1_sample + pulse2_sample + triangle_sample - 1.5) * 0.1;
 }
