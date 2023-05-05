@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
     NES::Sound::setUserFunc(sound);
 
     nes.controller[0] = 0x00;
+    window.setFramerateLimit(60);
 
     while (window.isOpen())
     {   
