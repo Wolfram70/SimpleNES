@@ -24,7 +24,7 @@ void updateWithAudio()
 
 int main(int argc, char *argv[])
 {
-    sf::RenderWindow window(sf::VideoMode(256.0f, 240.0f), "NES Emulator")
+    sf::RenderWindow window(sf::VideoMode(256.0f, 240.0f), "NES Emulator");
 
     if(argc < 2)
     {
