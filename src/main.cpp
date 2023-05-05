@@ -69,10 +69,7 @@ int main(int argc, char *argv[])
                     NES::Sound::destroy();
                     //save the prg ram to a file
                     save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
-                    if(nes.cartridge->save(save_file))
-                        std::cout << "Saved to " << save_file << std::endl;
-                    else
-                        std::cout << "Failed to save to " << save_file << std::endl;
+                    nes.cartridge->save(save_file);
                     window.close();
                     break;
                 case sf::Event::KeyPressed:

@@ -155,6 +155,12 @@ Cartridge::Cartridge(const std::string &filepath)
                 mapper->set_mirror(mirror);
                 std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
                 break;
+            case 2:
+                mapper = std::make_shared<Mapper_002>(prg_banks, chr_banks);
+                prg_ram_size = mapper->PRG_RAM.size();
+                mapper->set_mirror(mirror);
+                std::cout << "PRG_BANKS: " << (uint16_t)prg_banks << "   CHR_BANKS: " << (uint16_t)chr_banks << std::endl;
+                break;
             default:
                 std::cout << "Mapper not implemented!" << std::endl;
                 valid = false;
@@ -164,6 +170,7 @@ Cartridge::Cartridge(const std::string &filepath)
         ifs.close();
 
         //check for save file
+        if(mapper->PRG_RAM.size() == 0) return;
         std::string save_file_name = filepath.substr(0, filepath.size() - 4) + ".sav";
         std::ifstream save_file(save_file_name, std::ios::binary);
         if(save_file.is_open())
@@ -203,10 +210,18 @@ bool Cartridge::save(std::string file_name)
         {
             return false;
         }
+        if(mapper->PRG_RAM.size() == 0)
+        {
+            std::cout << "Nothing to save!" << std::endl;
+            save_file.close();
+            return true;
+        }
         save_file.write((char*)mapper->PRG_RAM.data(), prg_ram_size);
         save_file.close();
+        std::cout << "Saved to " << file_name << std::endl;
         return true;
     }
+    std::cout << "Failed to save to " << file_name << std::endl;
     return false;
 }
 

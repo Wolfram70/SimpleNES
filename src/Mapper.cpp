@@ -248,3 +248,58 @@ void Mapper_001::reset()
     CHR0 = 0;
     CHR1 = 0;
 }
+
+//MAPPER 002
+
+bool Mapper_002::read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
+{
+    if(addr >= 0x8000 && addr <= 0xBFFF)
+    {
+        mapped_addr = uint32_t(PRG << 14) | uint32_t(addr & 0x3FFF);
+        return true;
+    }
+    else if(addr >= 0xC000 && addr <= 0xFFFF)
+    {
+        mapped_addr = uint32_t((n_prg_banks - 1) << 14) | uint32_t(addr & 0x3FFF);
+        return true;
+    }
+    return false;
+}
+
+bool Mapper_002::write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+{
+    if(addr >= 0x8000 && addr <= 0xFFFF)
+    {
+        PRG = data;
+        return true;
+    }
+    return false;
+}
+
+bool Mapper_002::read_map_ppu(uint16_t addr, uint32_t &mapped_addr)
+{
+    if(addr >= 0x0000 && addr <= 0x1FFF)
+    {
+        mapped_addr = addr;
+        return true;
+    }
+    return false;
+}
+
+bool Mapper_002::write_map_ppu(uint16_t addr, uint32_t &mapped_addr)
+{
+    if(addr >= 0x0000 && addr <= 0x1FFF)
+    {
+        if(n_chr_banks == 0)
+        {
+            mapped_addr = addr;
+            return true;
+        }
+    }
+    return false;
+}
+
+void Mapper_002::reset()
+{
+    PRG = 0x00;
+}

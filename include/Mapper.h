@@ -80,4 +80,26 @@ public:
     void reset() override;
 };
 
+class Mapper_002 : public Mapper
+{
+    //the chr_ram is present on the cartridge as 8KB chr rom itself (since thats the max, if any, for mapper 001 also iNES header)
+public:
+    Mapper_002(uint16_t n_prg_banks, uint16_t n_chr_banks): Mapper(n_prg_banks, n_chr_banks) {
+        PRG_RAM.resize(0);
+    }
+    ~Mapper_002() {};
+
+private:
+    //registers
+    uint8_t PRG = 0x00;
+
+public:
+    bool read_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override; 
+    bool write_map_cpu(uint16_t addr, uint32_t &mapped_addr, uint8_t data = 0) override;
+    bool read_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+    bool write_map_ppu(uint16_t addr, uint32_t &mapped_addr) override;
+    
+    void reset() override;
+};
+
 #endif
