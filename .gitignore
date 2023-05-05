@@ -3,4 +3,3 @@ test_exp/
 output
 *.nes
 test_roms/
-bin/emu
