@@ -913,7 +913,7 @@ void CPU::nmi()
 	setFlag(I, 1); //set the interrupt flag
 	write(0x0100 + sp, status); //write the status register to the stack
 	sp--; //decrement the stack pointer
-	addr_abs = 0xFFFA; //set the address to 0xFFFE
+	addr_abs = 0xFFFA; //set the address to 0xFFFA
 	uint16_t low = read(addr_abs + 0); //read the low byte of the address
 	uint16_t high = read(addr_abs + 1); //read the high byte of the address
 	pc = (high << 8) | low; //set the program counter to the address specified

@@ -164,6 +164,7 @@ Cartridge::Cartridge(const std::string &filepath)
             default:
                 std::cout << "Mapper not implemented!" << std::endl;
                 valid = false;
+                return;
                 break;
         }
 
