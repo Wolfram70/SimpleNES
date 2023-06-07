@@ -4,6 +4,7 @@ uint8_t length_table[] = {10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 
 
 APU::APU()
 {
+    noise_seq.sequence = 0xDBDB;
 }
 
 APU::~APU()
@@ -115,12 +116,68 @@ void APU::write_cpu(uint16_t addr, uint8_t data)
             triangle_seq.reload_flag = true;
             break;
         case 0x400C:
+            noise_halt = (data & 0x20);
+            noise_env.volume = (data & 0x0F);
+            noise_env.disable = (data & 0x10);
             break;
         case 0x400E:
+            switch (data & 0x0F)
+            {
+                case 0x00:
+                    noise_seq.reload = 0;
+                    break;
+                case 0x01:
+                    noise_seq.reload = 4;
+                    break;
+                case 0x02:
+                    noise_seq.reload = 8;
+                    break;
+                case 0x03:
+                    noise_seq.reload = 16;
+                    break;
+                case 0x04:
+                    noise_seq.reload = 32;
+                    break;
+                case 0x05:
+                    noise_seq.reload = 64;
+                    break;
+                case 0x06:
+                    noise_seq.reload = 96;
+                    break;
+                case 0x07:
+                    noise_seq.reload = 128;
+                    break;
+                case 0x08:
+                    noise_seq.reload = 160;
+                    break;
+                case 0x09:
+                    noise_seq.reload = 202;
+                    break;
+                case 0x0A:
+                    noise_seq.reload = 254;
+                    break;
+                case 0x0B:
+                    noise_seq.reload = 380;
+                    break;
+                case 0x0C:
+                    noise_seq.reload = 508;
+                    break;
+                case 0x0D:
+                    noise_seq.reload = 1016;
+                    break;
+                case 0x0E:
+                    noise_seq.reload = 2034;
+                    break;
+                case 0x0F:
+                    noise_seq.reload = 4068;
+                    break;
+            }
+            noise_mode = (data & 0x80);
             break;
         case 0x4015:
             pulse1_enable = (data & 0x01);
             pulse2_enable = (data & 0x02);
+            noise_enable = (data & 0x08);
             triangle_enable = (data & 0x04);
             if(!triangle_enable)
                 triangle_seq.length_counter = 0;
@@ -128,12 +185,25 @@ void APU::write_cpu(uint16_t addr, uint8_t data)
         case 0x400F:
             pulse1_env.start = true;
             pulse2_env.start = true;
+            noise_env.start = true;
+            noise_len.counter = length_table[(data & 0xF8) >> 3];
             break;
     }
 }
 
 uint8_t APU::read_cpu(uint16_t addr)
 {
+    if(addr == 0x4015)
+    {
+        return (pulse1_len.counter > 0 ? 0x01 : 0x00) |
+                (pulse2_len.counter > 0 ? 0x02 : 0x00) |
+                (triangle_seq.length_counter > 0 ? 0x04 : 0x00) |
+                (noise_len.counter > 0 ? 0x08 : 0x00) |
+                (0x00) |
+                (0x00) |
+                (0x00) |
+                (0x00);
+    }
     return 0;
 }
 
@@ -185,6 +255,8 @@ void APU::clock()
             pulse1_env.clock(pulse1_halt);
             pulse2_env.clock(pulse2_halt);
 
+            noise_env.clock(noise_halt);
+
             triangle_seq.linear_clock();
         }
 
@@ -195,6 +267,8 @@ void APU::clock()
 
             pulse2_len.clock(pulse2_enable, pulse2_halt);
             pulse2_sweep.clock(pulse2_seq.reload, 1);
+
+            noise_len.clock(noise_enable, noise_halt);
 
             triangle_seq.length_clock();
         }
@@ -253,13 +327,33 @@ void APU::clock()
             pulse2_sample = 0;
         }
 
+        //noise
+
+        bool tb = noise_mode;
+        noise_seq.clock(noise_enable, [tb](uint32_t &s)
+        {
+            s = (((s & 0x0001) ^ (tb ? ((s & 0x0040) >> 6) : ((s & 0x0002) >> 1))) << 14) | ((s & 0x7FFF) >> 1);
+        });
+
+        if(noise_seq.timer >= 8 && noise_len.counter > 0 /*&& noise_env.output > 2*/)
+        {
+            noise_sample = ((double)(noise_env.output - 1) / 16.0) * (double)noise_seq.output;
+        }
+
+        if(!noise_enable)
+        {
+            noise_sample = 0;
+        }
+
+        noise_output = noise_sample;
+
         //triangle
 
         triangle_osc.frequency = 1789773.0 / (32.0 * (double)(triangle_seq.timer_reload + 1));
         triangle_osc.amplitude = (double)(15 - 1) / 16.0;
         triangle_sample = triangle_osc.sample(globalTime);
 
-        if(triangle_enable && triangle_seq.timer_reload > 2 && triangle_seq.length_counter > 0)
+        if(triangle_enable && triangle_seq.timer_reload > 2 && triangle_seq.length_counter > 0 && triangle_seq.linear_counter > 0)
         {
             triangle_output += (triangle_sample - triangle_output) * 0.5;
         }
@@ -283,8 +377,9 @@ void APU::reset()
 
 double APU::getSample()
 {
-    // return ((1.0 * pulse1_output) - 0.5) * 0.1 +
-    //         ((1.0 * pulse2_output) - 0.5) * 0.1 +
-    //         ((1.0 * triangle_output) - 0.5) * 0.1;
-    return (pulse1_sample + pulse2_sample + triangle_sample - 1.5) * 0.1;
+    // return ((1.0 * pulse1_output) - 0.8) * 0.1 +
+    //         ((1.0 * pulse2_output) - 0.8) * 0.1 +
+    //         (2.0 * (noise_output - 0.5)) * 0.1 +
+    //         ((1.0 * triangle_output) - 0.8) * 0.1;
+    return (pulse1_sample + pulse2_sample + triangle_sample + noise_sample - 2.0) * 0.1;
 }

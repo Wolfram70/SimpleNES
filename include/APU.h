@@ -191,7 +191,7 @@ struct TriangleSequencer
 
         if(!halt)
         {
-            reload = 0;
+            reload_flag = false;
         }
     }
 
@@ -350,6 +350,16 @@ private:
     bool triangle_enable = false;
     double triangle_sample = 0.0;
     double triangle_output = 0.0;
+
+    //noise
+    Sequencer noise_seq;
+    Envelope noise_env;
+    LengthCounter noise_len;
+    bool noise_enable = false;
+    bool noise_halt = false;
+    double noise_sample = 0.0;
+    double noise_output = 0.0;
+    bool noise_mode = false;
 
 public:
     uint16_t pulse1_visual = 0;

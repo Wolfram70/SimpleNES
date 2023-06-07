@@ -33,7 +33,7 @@ void Bus::write_cpu(uint16_t addr, uint8_t data)
     {
         ppu.write_cpu(addr & 0x0007, data); //mirror the PPU registers to 0x0000 - 0x0007
     }
-    else if((addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015 || addr == 0x4017) //REMINDER: what about controller 2?
+    else if((addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015) //REMINDER: what about controller 2?
     {
         apu.write_cpu(addr, data);
     }
@@ -64,6 +64,10 @@ uint8_t Bus::read_cpu(uint16_t addr, bool bReadOnly)
     else if (addr >= 0x2000 && addr <= 0x3FFF) //8KB of address range
     {
         return ppu.read_cpu(addr & 0x0007, bReadOnly); //mirror the PPU registers to 0x0000 - 0x0007
+    }
+    else if(addr == 0x4015)
+    {
+        return apu.read_cpu(addr);
     }
     else if(addr >= 0x4016 && addr <= 0x4017)
     {
