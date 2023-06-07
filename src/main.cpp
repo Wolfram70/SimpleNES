@@ -11,6 +11,10 @@
 #include "../include/Sound.h"
 
 Bus nes;
+std::string save_file;
+bool joystick = false;
+int players[] = {-1, -1};
+int player0 = 0;
 
 float sound(int channel, float globalTime, float timeStep)
 {
@@ -40,7 +44,6 @@ int main(int argc, char *argv[])
     }
 
     std::shared_ptr<Cartridge> cartridge = std::make_shared<Cartridge>(argv[1]);
-    std::string save_file;
     if(!cartridge->getValid())
         return 0;
     
@@ -58,21 +61,24 @@ int main(int argc, char *argv[])
     NES::Sound::setUserFunc(sound);
 
     nes.controller[0] = 0x00;
+    nes.controller[1] = 0x00;
     window.setFramerateLimit(60);
 
     sf::Joystick::update();
-    bool joystick = false;
-    int port = 0;
+    int joycount = 0;
+
     for(int i = 0; i < sf::Joystick::Count; i++)
     {
         if(sf::Joystick::isConnected(i))
         {
-            std::cout << "Joystick connected on port " << i << std::endl;
+            std::cout << "Joystick connected on port " << i << " and set to player " << joycount << std::endl;
             joystick = true;
-            port = i;
-            break;
+            players[joycount++] = i;
+            if(joycount >= 2) break;
         }
     }
+
+    save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
 
     while (window.isOpen())
     {   
@@ -86,7 +92,6 @@ int main(int argc, char *argv[])
                     case sf::Event::Closed:
                         NES::Sound::destroy();
                         //save the prg ram to a file
-                        save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
                         nes.cartridge->save(save_file);
                         window.close();
                         break;
@@ -94,39 +99,38 @@ int main(int argc, char *argv[])
                         switch(event.key.code)
                         {
                             case sf::Keyboard::Key::X:
-                                nes.controller[0] |= 0x80;
+                                nes.controller[player0] |= 0x80;
                                 break;
                             case sf::Keyboard::Key::Z:
-                                nes.controller[0] |= 0x40;
+                                nes.controller[player0] |= 0x40;
                                 break;
                             case sf::Keyboard::Key::A:
-                                nes.controller[0] |= 0x20;
+                                nes.controller[player0] |= 0x20;
                                 break;
                             case sf::Keyboard::Key::S:
-                                nes.controller[0] |= 0x10;
+                                nes.controller[player0] |= 0x10;
                                 break;
                             case sf::Keyboard::Key::Up:
-                                nes.controller[0] |= 0x08;
-                                nes.controller[0] &= ~0x04;
+                                nes.controller[player0] |= 0x08;
+                                nes.controller[player0] &= ~0x04;
                                 break;
                             case sf::Keyboard::Key::Down:
-                                nes.controller[0] |= 0x04;
-                                nes.controller[0] &= ~0x08;
+                                nes.controller[player0] |= 0x04;
+                                nes.controller[player0] &= ~0x08;
                                 break;
                             case sf::Keyboard::Key::Left:
-                                nes.controller[0] |= 0x02;
-                                nes.controller[0] &= ~0x01;
+                                nes.controller[player0] |= 0x02;
+                                nes.controller[player0] &= ~0x01;
                                 break;
                             case sf::Keyboard::Key::Right:
-                                nes.controller[0] |= 0x01;
-                                nes.controller[0] &= ~0x02;
+                                nes.controller[player0] |= 0x01;
+                                nes.controller[player0] &= ~0x02;
                                 break;
                             case sf::Keyboard::Key::R:
                                 nes.reset();
                                 break;
                             case sf::Keyboard::Key::P:
                                 //save the prg ram to a file
-                                save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
                                 if(nes.cartridge->save(save_file))
                                     std::cout << "Saved to " << save_file << std::endl;
                                 else
@@ -140,28 +144,28 @@ int main(int argc, char *argv[])
                         switch(event.key.code)
                         {
                             case sf::Keyboard::Key::X:
-                                nes.controller[0] &= ~0x80;
+                                nes.controller[player0] &= ~0x80;
                                 break;
                             case sf::Keyboard::Key::Z:
-                                nes.controller[0] &= ~0x40;
+                                nes.controller[player0] &= ~0x40;
                                 break;
                             case sf::Keyboard::Key::A:
-                                nes.controller[0] &= ~0x20;
+                                nes.controller[player0] &= ~0x20;
                                 break;
                             case sf::Keyboard::Key::S:
-                                nes.controller[0] &= ~0x10;
+                                nes.controller[player0] &= ~0x10;
                                 break;
                             case sf::Keyboard::Key::Up:
-                                nes.controller[0] &= ~0x08;
+                                nes.controller[player0] &= ~0x08;
                                 break;
                             case sf::Keyboard::Key::Down:
-                                nes.controller[0] &= ~0x04;
+                                nes.controller[player0] &= ~0x04;
                                 break;
                             case sf::Keyboard::Key::Left:
-                                nes.controller[0] &= ~0x02;
+                                nes.controller[player0] &= ~0x02;
                                 break;
                             case sf::Keyboard::Key::Right:
-                                nes.controller[0] &= ~0x01;
+                                nes.controller[player0] &= ~0x01;
                                 break;
                             default:
                                 break;
@@ -178,58 +182,189 @@ int main(int argc, char *argv[])
                     case sf::Event::Closed:
                         NES::Sound::destroy();
                         //save the prg ram to a file
-                        save_file = std::string(argv[1]).substr(0, std::string(argv[1]).size() - 4) + ".sav";
                         nes.cartridge->save(save_file);
                         window.close();
+                        break;
+                    case sf::Event::KeyPressed:
+                        if(players[1] == -1)
+                        {
+                            switch(event.key.code)
+                            {
+                                case sf::Keyboard::Key::X:
+                                    nes.controller[(player0 + 1) % 2] |= 0x80;
+                                    break;
+                                case sf::Keyboard::Key::Z:
+                                    nes.controller[(player0 + 1) % 2] |= 0x40;
+                                    break;
+                                case sf::Keyboard::Key::A:
+                                    nes.controller[(player0 + 1) % 2] |= 0x20;
+                                    break;
+                                case sf::Keyboard::Key::S:
+                                    nes.controller[(player0 + 1) % 2] |= 0x10;
+                                    break;
+                                case sf::Keyboard::Key::Up:
+                                    nes.controller[(player0 + 1) % 2] |= 0x08;
+                                    nes.controller[(player0 + 1) % 2] &= ~0x04;
+                                    break;
+                                case sf::Keyboard::Key::Down:
+                                    nes.controller[(player0 + 1) % 2] |= 0x04;
+                                    nes.controller[(player0 + 1) % 2] &= ~0x08;
+                                    break;
+                                case sf::Keyboard::Key::Left:
+                                    nes.controller[(player0 + 1) % 2] |= 0x02;
+                                    nes.controller[(player0 + 1) % 2] &= ~0x01;
+                                    break;
+                                case sf::Keyboard::Key::Right:
+                                    nes.controller[(player0 + 1) % 2] |= 0x01;
+                                    nes.controller[(player0 + 1) % 2] &= ~0x02;
+                                    break;
+                                case sf::Keyboard::Key::R:
+                                    nes.reset();
+                                    break;
+                                case sf::Keyboard::Key::P:
+                                    //save the prg ram to a file
+                                    if(nes.cartridge->save(save_file))
+                                        std::cout << "Saved to " << save_file << std::endl;
+                                    else
+                                        std::cout << "Failed to save to " << save_file << std::endl;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    case sf::Event::KeyReleased:
+                        if(players[1] == -1)
+                        {
+                            switch(event.key.code)
+                            {
+                                case sf::Keyboard::Key::X:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x80;
+                                    break;
+                                case sf::Keyboard::Key::Z:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x40;
+                                    break;
+                                case sf::Keyboard::Key::A:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x20;
+                                    break;
+                                case sf::Keyboard::Key::S:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x10;
+                                    break;
+                                case sf::Keyboard::Key::Up:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x08;
+                                    break;
+                                case sf::Keyboard::Key::Down:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x04;
+                                    break;
+                                case sf::Keyboard::Key::Left:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x02;
+                                    break;
+                                case sf::Keyboard::Key::Right:
+                                    nes.controller[(player0 + 1) % 2] &= ~0x01;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
                         break;
                     default:
                         //joystick controls
                         sf::Joystick::update();
-                        if(sf::Joystick::isButtonPressed(port, 0))
-                            nes.controller[0] |= 0x80;
+                        if(sf::Joystick::isButtonPressed(players[0], 0))
+                            nes.controller[player0] |= 0x80;
                         else
-                            nes.controller[0] &= ~0x80;
-                        if(sf::Joystick::isButtonPressed(port, 1))
-                            nes.controller[0] |= 0x40;
+                            nes.controller[player0] &= ~0x80;
+                        if(sf::Joystick::isButtonPressed(players[0], 1))
+                            nes.controller[player0] |= 0x40;
                         else
-                            nes.controller[0] &= ~0x40;
-                        if(sf::Joystick::isButtonPressed(port, 6))
-                            nes.controller[0] |= 0x20;
+                            nes.controller[player0] &= ~0x40;
+                        if(sf::Joystick::isButtonPressed(players[0], 6))
+                            nes.controller[player0] |= 0x20;
                         else
-                            nes.controller[0] &= ~0x20;
-                        if(sf::Joystick::isButtonPressed(port, 7))
-                            nes.controller[0] |= 0x10;
+                            nes.controller[player0] &= ~0x20;
+                        if(sf::Joystick::isButtonPressed(players[0], 7))
+                            nes.controller[player0] |= 0x10;
                         else
                             nes.controller[0] &= ~0x10;
-                        if(sf::Joystick::getAxisPosition(port, sf::Joystick::Axis::Y) < -50)
+                        if(sf::Joystick::getAxisPosition(players[0], sf::Joystick::Axis::Y) < -50)
                         {
-                            nes.controller[0] |= 0x08;
-                            nes.controller[0] &= ~0x04;
+                            nes.controller[player0] |= 0x08;
+                            nes.controller[player0] &= ~0x04;
                         }
-                        else if(sf::Joystick::getAxisPosition(port, sf::Joystick::Axis::Y) > 50)
+                        else if(sf::Joystick::getAxisPosition(players[0], sf::Joystick::Axis::Y) > 50)
                         {
-                            nes.controller[0] |= 0x04;
-                            nes.controller[0] &= ~0x08;
-                        }
-                        else
-                        {
-                            nes.controller[0] &= ~0x08;
-                            nes.controller[0] &= ~0x04;
-                        }
-                        if(sf::Joystick::getAxisPosition(port, sf::Joystick::Axis::X) < -50)
-                        {
-                            nes.controller[0] |= 0x02;
-                            nes.controller[0] &= ~0x01;
-                        }
-                        else if(sf::Joystick::getAxisPosition(port, sf::Joystick::Axis::X) > 50)
-                        {
-                            nes.controller[0] |= 0x01;
-                            nes.controller[0] &= ~0x02;
+                            nes.controller[player0] |= 0x04;
+                            nes.controller[player0] &= ~0x08;
                         }
                         else
                         {
-                            nes.controller[0] &= ~0x02;
-                            nes.controller[0] &= ~0x01;
+                            nes.controller[player0] &= ~0x08;
+                            nes.controller[player0] &= ~0x04;
+                        }
+                        if(sf::Joystick::getAxisPosition(players[0], sf::Joystick::Axis::X) < -50)
+                        {
+                            nes.controller[player0] |= 0x02;
+                            nes.controller[player0] &= ~0x01;
+                        }
+                        else if(sf::Joystick::getAxisPosition(players[0], sf::Joystick::Axis::X) > 50)
+                        {
+                            nes.controller[player0] |= 0x01;
+                            nes.controller[player0] &= ~0x02;
+                        }
+                        else
+                        {
+                            nes.controller[player0] &= ~0x02;
+                            nes.controller[player0] &= ~0x01;
+                        }
+
+                        if(players[1] >= 0)
+                        {
+                            if(sf::Joystick::isButtonPressed(players[1], 0))
+                                nes.controller[(player0 + 1) % 2] |= 0x80;
+                            else
+                                nes.controller[(player0 + 1) % 2] &= ~0x80;
+                            if(sf::Joystick::isButtonPressed(players[1], 1))
+                                nes.controller[(player0 + 1) % 2] |= 0x40;
+                            else
+                                nes.controller[(player0 + 1) % 2] &= ~0x40;
+                            if(sf::Joystick::isButtonPressed(players[1], 6))
+                                nes.controller[(player0 + 1) % 2] |= 0x20;
+                            else
+                                nes.controller[(player0 + 1) % 2] &= ~0x20;
+                            if(sf::Joystick::isButtonPressed(players[1], 7))
+                                nes.controller[(player0 + 1) % 2] |= 0x10;
+                            else
+                                nes.controller[0] &= ~0x10;
+                            if(sf::Joystick::getAxisPosition(players[1], sf::Joystick::Axis::Y) < -50)
+                            {
+                                nes.controller[(player0 + 1) % 2] |= 0x08;
+                                nes.controller[(player0 + 1) % 2] &= ~0x04;
+                            }
+                            else if(sf::Joystick::getAxisPosition(players[1], sf::Joystick::Axis::Y) > 50)
+                            {
+                                nes.controller[(player0 + 1) % 2] |= 0x04;
+                                nes.controller[(player0 + 1) % 2] &= ~0x08;
+                            }
+                            else
+                            {
+                                nes.controller[(player0 + 1) % 2] &= ~0x08;
+                                nes.controller[(player0 + 1) % 2] &= ~0x04;
+                            }
+                            if(sf::Joystick::getAxisPosition(players[1], sf::Joystick::Axis::X) < -50)
+                            {
+                                nes.controller[(player0 + 1) % 2] |= 0x02;
+                                nes.controller[(player0 + 1) % 2] &= ~0x01;
+                            }
+                            else if(sf::Joystick::getAxisPosition(players[1], sf::Joystick::Axis::X) > 50)
+                            {
+                                nes.controller[(player0 + 1) % 2] |= 0x01;
+                                nes.controller[(player0 + 1) % 2] &= ~0x02;
+                            }
+                            else
+                            {
+                                nes.controller[(player0 + 1) % 2] &= ~0x02;
+                                nes.controller[(player0 + 1) % 2] &= ~0x01;
+                            }
                         }
                         break;
                 }
