@@ -628,13 +628,17 @@ void syncEachOther(int syncSocket)
 {
     auto start = std::chrono::high_resolution_clock::now();
     std::this_thread::sleep_for(std::chrono::microseconds(delay));
+    uint32_t myClockCount, othClockCount, othClockCountPrev = 0, myClockCountPrev = 0;
+    uint8_t ram_buf[2048];
+    int status;
+
     while(true)
     {
         if(!multi) break;
         //every 5 seconds sync up
         auto end = std::chrono::high_resolution_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::seconds>(end - start);
-        if(dur.count() >= 5)
+        if(dur.count() >= 1)
         {
             synced = false;
             char p_sync = 51;
@@ -642,8 +646,81 @@ void syncEachOther(int syncSocket)
             //if server
             if(player0 == 0)
             {
+                //sync clocks
+                myClockCount = nes.nSystemClockCounter;
+                status = send(syncSocket, &myClockCount, sizeof(myClockCount), 0);
+                status = recv(syncSocket, &othClockCount, sizeof(othClockCount), 0);
+
+                if(status == 0)
+                {
+                    std::cout << "Sync connection closed!" << std::endl;
+                    multi = false;
+                    break;
+                }
+                else if(status == -1)
+                {
+                    std::cout << "Error sending data! (sync)" << std::endl;
+                    multi = false;
+                    break;
+                }
+
+                if(othClockCountPrev > othClockCount)
+                {
+                    //overflow
+                    if(myClockCount > othClockCount && myClockCount >= myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                    else if(myClockCount < othClockCount && myClockCount < myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                }
+                else
+                {
+                    if(myClockCount < othClockCount && myClockCount >= myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                }
+
+                othClockCountPrev = othClockCount;
+                myClockCountPrev = myClockCount;
+
+                //sync ram
+                for(int i = 0; i < 2048; i++)
+                    ram_buf[i] = nes.cpu_ram[i];
+                status = send(syncSocket, (char*) ram_buf, 2048, 0);
+                status = recv(syncSocket, &p_sync, 1, 0);
+
+                if(status == 0)
+                {
+                    std::cout << "Sync connection closed!" << std::endl;
+                    multi = false;
+                    break;
+                }
+                else if(status == -1)
+                {
+                    std::cout << "Error sending data! (sync)" << std::endl;
+                    multi = false;
+                    break;
+                }
+
+                //sync time
                 auto syncStart = std::chrono::high_resolution_clock::now();
-                int status = send(syncSocket, &p_sync, 1, 0);
+                status = send(syncSocket, &p_sync, 1, 0);
                 status = recv(syncSocket, &p_sync, 1, 0);
                 auto syncEnd = std::chrono::high_resolution_clock::now();
 
@@ -671,7 +748,80 @@ void syncEachOther(int syncSocket)
             }
             else //if client
             {
-                int status = recv(syncSocket, &p_sync, 1, 0);
+                //sync clocks
+                myClockCount = nes.nSystemClockCounter;
+                status = recv(syncSocket, &othClockCount, sizeof(othClockCount), 0);
+                status = send(syncSocket, &myClockCount, sizeof(myClockCount), 0);
+
+                if(status == 0)
+                {
+                    std::cout << "Sync connection closed!" << std::endl;
+                    multi = false;
+                    break;
+                }
+                else if(status == -1)
+                {
+                    std::cout << "Error sending data! (sync)" << std::endl;
+                    multi = false;
+                    break;
+                }
+
+                if(othClockCountPrev > othClockCount)
+                {
+                    //overflow
+                    if(myClockCount > othClockCount && myClockCount >= myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                    else if(myClockCount < othClockCount && myClockCount < myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                }
+                else
+                {
+                    if(myClockCount < othClockCount && myClockCount >= myClockCountPrev)
+                    {
+                        while(myClockCount != othClockCount)
+                        {
+                            nes.clock();
+                            myClockCount++;
+                        }
+                    }
+                }
+
+                othClockCountPrev = othClockCount;
+                myClockCountPrev = myClockCount;
+
+                //sync ram
+                status = recv(syncSocket, (char*) ram_buf, 2048, 0);
+                for(int i = 0; i < 2048; i++)
+                    nes.cpu_ram[i] = ram_buf[i];
+                status = send(syncSocket, &p_sync, 1, 0);
+
+                if(status == 0)
+                {
+                    std::cout << "Sync connection closed!" << std::endl;
+                    multi = false;
+                    break;
+                }
+                else if(status == -1)
+                {
+                    std::cout << "Error sending data! (sync)" << std::endl;
+                    multi = false;
+                    break;
+                }
+
+                //sync time
+                status = recv(syncSocket, &p_sync, 1, 0);
                 status = send(syncSocket, &p_sync, 1, 0);
 
                 //recieve delay from other player
