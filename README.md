@@ -1,5 +1,5 @@
 # SimpleNES
-A simple NES Emulator. <br>
+A simple NES Emulator with multiplayer capability on LAN. <br>
 Thanks to <a href="https://www.youtube.com/@javidx9">javidx9</a> for the wonderful tutorial (and the opcode table) that helped me get started. <br>
 ## Usage
 Needs SFML and ALSA to work, can be installed with:
